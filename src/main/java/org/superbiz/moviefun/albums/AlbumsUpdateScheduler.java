@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 @Configuration
 @EnableAsync
 @EnableScheduling
-public class AlbumsUpdateScheduler {
+public class AlbumsUpdateScheduler extends SchedulerDAO{
 
     private static final long SECONDS = 1000;
     private static final long MINUTES = 60 * SECONDS;
@@ -23,16 +23,20 @@ public class AlbumsUpdateScheduler {
     }
 
 
-    @Scheduled(initialDelay = 15 * SECONDS, fixedRate = 2 * MINUTES)
+    @Scheduled(initialDelay = 15 * SECONDS, fixedRate = 1 * MINUTES)
     public void run() {
-        try {
-            logger.debug("Starting albums update");
-            albumsUpdater.update();
-
-            logger.debug("Finished albums update");
-
-        } catch (Throwable e) {
-            logger.error("Error while updating albums", e);
+        if (!isJobRunning()) {
+            try {
+                logger.debug("Starting albums update");
+                flagJobAsRunning();
+                albumsUpdater.update();
+                flagJobAsCompleted();
+                logger.debug("Finished albums update");
+            } catch (Throwable e) {
+                logger.error("Error while updating albums", e);
+            }
+        } else {
+            logger.debug("MULTIPLE JOB ALERT! Job won't run as someone else is already running it.");
         }
     }
 }
